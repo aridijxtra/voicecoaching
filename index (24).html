@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Voice Coaching</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #f4f4f2;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: rgba(0,0,0,0.70);
+  }
+
+  /* ── Start screen ── */
+  #start-screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    z-index: 100;
+    background: #f4f4f2;
+    transition: opacity 0.7s ease;
+  }
+  #start-screen.hidden { opacity: 0; pointer-events: none; }
+
+  #start-screen h1 {
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 300;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.78);
+    line-height: 1;
+    margin-bottom: 0.55rem;
+  }
+  #start-screen p.sub {
+    font-size: clamp(1rem, 2.2vw, 1.25rem);
+    font-style: italic;
+    color: rgba(0,0,0,0.35);
+    letter-spacing: 0.05em;
+    margin-bottom: 3rem;
+  }
+  #start-btn {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 0.85rem 2.4rem;
+    border: 1.5px solid rgba(0,0,0,0.20);
+    border-radius: 40px;
+    background: transparent;
+    color: rgba(0,0,0,0.55);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.25s, border-color 0.25s, color 0.25s, transform 0.15s;
+  }
+  #start-btn:hover {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.35);
+    color: rgba(0,0,0,0.80);
+    transform: translateY(-1px);
+  }
+
+  /* ── Coaching screen ── */
+  #coaching-screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.8s ease;
+    padding: 2rem;
+    gap: 2rem;
+  }
+  #coaching-screen.visible { opacity: 1; pointer-events: auto; }
+
+  #coaching-title {
+    text-align: center;
+  }
+  #coaching-title h1 {
+    font-size: clamp(1.3rem, 2.8vw, 2rem);
+    font-weight: 300;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.45);
+    margin-bottom: 0.25rem;
+  }
+  #coaching-title p {
+    font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+    font-style: italic;
+    color: rgba(0,0,0,0.25);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Meter box ── */
+  #meter-wrap {
+    position: relative;
+    width: min(440px, 84vw);
+    height: min(300px, 44vh);
+  }
+
+  /* Fill grows from bottom */
+  #meter-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 0%;
+    border-radius: 0 0 3px 3px;
+    /* slow, smooth colour transition — matches the 2.5s measurement cycle */
+    transition: height 1.2s cubic-bezier(0.4,0,0.2,1),
+                background-color 1.2s cubic-bezier(0.4,0,0.2,1);
+    z-index: 1;
+  }
+
+  /* Border always on top */
+  #meter-border {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(0,0,0,0.18);
+    border-radius: 4px;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* Tick lines at calibrated semitone boundaries */
+  .tick {
+    position: absolute; left: 0; right: 0;
+    height: 1px;
+    background: rgba(0,0,0,0.10);
+    z-index: 2;
+  }
+  .tick-label {
+    position: absolute;
+    right: calc(100% + 10px);
+    transform: translateY(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.28);
+    white-space: nowrap;
+  }
+
+  /* Label inside fill */
+  #meter-label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 4; pointer-events: none;
+  }
+  #level-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.80);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.20);
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+  #level-text.visible { opacity: 1; }
+
+  /* ── Countdown ring ── */
+  #countdown-wrap {
+    position: absolute;
+    bottom: 10px; right: 10px;
+    width: 28px; height: 28px;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #countdown-wrap.visible { opacity: 0.45; }
+  #countdown-svg circle.track {
+    fill: none; stroke: rgba(0,0,0,0.12); stroke-width: 2.5;
+  }
+  #countdown-svg circle.prog {
+    fill: none; stroke: rgba(0,0,0,0.40); stroke-width: 2.5;
+    stroke-dasharray: 75.4;
+    stroke-dashoffset: 0;
+    stroke-linecap: round;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    transition: stroke-dashoffset 0.1s linear;
+  }
+
+  /* ── Instructions ── */
+  #instructions {
+    text-align: center;
+    display: flex; flex-direction: column; gap: 0.35rem;
+  }
+  #instructions p {
+    font-size: clamp(0.76rem, 1.5vw, 0.88rem);
+    font-weight: 300;
+    color: rgba(0,0,0,0.27);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Debug ── */
+  #debug {
+    position: fixed; top: 1.2rem; right: 1.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.60rem;
+    color: rgba(0,0,0,0.20);
+    letter-spacing: 0.06em;
+    line-height: 2;
+    text-align: right;
+    z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Start screen ── -->
+<div id="start-screen">
+  <h1>Voice Coaching</h1>
+  <p class="sub">See how your voice moves</p>
+  <button id="start-btn">
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+      <circle cx="6" cy="6" r="5.5" stroke="currentColor"/>
+      <path d="M4.5 4l4 2-4 2V4z" fill="currentColor"/>
+    </svg>
+    Allow microphone
+  </button>
+</div>
+
+<!-- ── Coaching screen ── -->
+<div id="coaching-screen">
+  <div id="coaching-title">
+    <h1>Voice Coaching</h1>
+    <p>See how your voice moves</p>
+  </div>
+
+  <div id="meter-wrap">
+    <!--
+      Tick positions based on calibrated semitone thresholds:
+        Blue ceiling  : ~8 st  → score 0.42  → 42% fill
+        Green ceiling : ~13 st → score 0.75  → 75% fill
+        Red starts    : ~15 st → score 0.92  → 92% fill
+
+      score = clamp((semitones - 3) / 15, 0, 1)
+    -->
+    <div class="tick" style="bottom:75%"><span class="tick-label">Expressive</span></div>
+    <div class="tick" style="bottom:42%"><span class="tick-label">Normal</span></div>
+    <div class="tick" style="bottom:15%"><span class="tick-label">Monotone</span></div>
+
+    <div id="meter-fill"></div>
+    <div id="meter-border"></div>
+
+    <div id="meter-label"><span id="level-text"></span></div>
+
+    <!-- Small countdown ring in corner -->
+    <div id="countdown-wrap">
+      <svg id="countdown-svg" viewBox="0 0 28 28">
+        <circle class="track" cx="14" cy="14" r="12"/>
+        <circle class="prog"  cx="14" cy="14" r="12" id="prog-circle"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="instructions">
+    <p>Speak naturally — the meter updates every few seconds</p>
+    <p>Blue = monotone &nbsp;·&nbsp; Green = normal &nbsp;·&nbsp; Red = expressive</p>
+  </div>
+</div>
+
+<!-- Debug -->
+<div id="debug">
+  <span id="dbg-hz">— Hz</span><br/>
+  <span id="dbg-st">— st</span><br/>
+  <span id="dbg-score">score —</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  VOICE COACHING — calibrated intonation meter
+//
+//  Measurement model:
+//    • Pitch (YIN) sampled continuously while voice is detected
+//    • Every MEASURE_INTERVAL seconds, compute semitone range
+//      of that window and update the displayed score
+//    • Score transitions smoothly to new value over ~1.2s
+//
+//  Calibration (librosa pyin on reference files, 2s windows):
+//    Monotone  median ~7 st  → score ~0.27  → BLUE zone
+//    Normal    median ~10 st → score ~0.47  → GREEN zone
+//    Expressive median ~11 st→ score ~0.53  → GREEN/ORANGE zone
+//
+//  Score formula: clamp( (semitones - 3) / 15, 0, 1 )
+//    3  st = silence/floor  → score 0
+//    8  st = blue ceiling   → score 0.33
+//    10 st = normal low     → score 0.47
+//    13 st = green ceiling  → score 0.67
+//    18 st = red            → score 1.0
+//
+//  Color zones (vivid, no pastels):
+//    score 0.00        → white (no voice)
+//    score 0.05–0.42   → blue  (monotone)
+//    score 0.42–0.72   → green (normal)
+//    score 0.72–1.00   → red   (expressive)
+// ═══════════════════════════════════════════════════════════════
+
+(function () {
+  'use strict';
+
+  // ── DOM ──
+  const startScreen    = document.getElementById('start-screen');
+  const coachingScreen = document.getElementById('coaching-screen');
+  const startBtn       = document.getElementById('start-btn');
+  const meterFill      = document.getElementById('meter-fill');
+  const levelText      = document.getElementById('level-text');
+  const countdownWrap  = document.getElementById('countdown-wrap');
+  const progCircle     = document.getElementById('prog-circle');
+  const dbgHz          = document.getElementById('dbg-hz');
+  const dbgSt          = document.getElementById('dbg-st');
+  const dbgScore       = document.getElementById('dbg-score');
+
+  // ── Config ──
+  const MEASURE_INTERVAL = 2500;  // ms — how often to compute & update score
+  const SILENCE_TIMEOUT  = 1500;  // ms — how long before declaring silence
+  const CIRCUMFERENCE    = 75.4;  // 2π × 12 (SVG circle r=12)
+
+  // ── State ──
+  let audioCtx      = null;
+  let analyser      = null;
+  let buffer        = null;
+  let isListening   = false;
+  let pitchBuffer   = [];         // Hz values collected in current window
+  let displayScore  = 0;          // currently displayed score (drives UI)
+  let hasVoice      = false;      // is there currently voice?
+  let silenceTimer  = null;
+  let measureTimer  = null;
+  let windowStart   = 0;          // performance.now() when current window began
+
+  // ─────────────────────────────────────────────
+  //  YIN PITCH DETECTION
+  // ─────────────────────────────────────────────
+  function yinPitch(float32, sampleRate) {
+    const half = Math.floor(float32.length / 2);
+    const threshold = 0.12;
+
+    const diff = new Float32Array(half);
+    for (let tau = 1; tau < half; tau++) {
+      let s = 0;
+      for (let i = 0; i < half; i++) {
+        const d = float32[i] - float32[i + tau];
+        s += d * d;
+      }
+      diff[tau] = s;
+    }
+
+    const cmnd = new Float32Array(half);
+    cmnd[0] = 1;
+    let running = 0;
+    for (let tau = 1; tau < half; tau++) {
+      running += diff[tau];
+      cmnd[tau] = diff[tau] * tau / running;
+    }
+
+    let tau = 2;
+    while (tau < half) {
+      if (cmnd[tau] < threshold) {
+        while (tau + 1 < half && cmnd[tau + 1] < cmnd[tau]) tau++;
+        break;
+      }
+      tau++;
+    }
+    if (tau === half || cmnd[tau] >= threshold) return -1;
+
+    if (tau > 0 && tau < half - 1) {
+      const s0 = cmnd[tau - 1], s1 = cmnd[tau], s2 = cmnd[tau + 1];
+      tau += (s2 - s0) / (2 * (2 * s1 - s2 - s0));
+    }
+    return sampleRate / tau;
+  }
+
+  // ─────────────────────────────────────────────
+  //  COMPUTE SEMITONE SCORE from pitch buffer
+  //
+  //  Uses 10th–90th percentile to be robust to
+  //  outlier frames at start/end of phrases.
+  // ─────────────────────────────────────────────
+  function semitoneScore(pitches) {
+    if (pitches.length < 5) return 0;
+
+    const sorted = [...pitches].sort((a, b) => a - b);
+    const n  = sorted.length;
+    const p10 = sorted[Math.max(0, Math.floor(n * 0.10))];
+    const p90 = sorted[Math.min(n-1, Math.floor(n * 0.90))];
+
+    if (p10 <= 0 || p90 <= p10) return 0;
+
+    const semitones = 12 * Math.log2(p90 / p10);
+    dbgSt.textContent = semitones.toFixed(1) + ' st';
+
+    // clamp( (st - 3) / 15, 0, 1 )
+    //  3 st → 0.00   (floor — barely any movement)
+    //  8 st → 0.33   (monotone ceiling)
+    // 13 st → 0.67   (normal ceiling)
+    // 18 st → 1.00   (very expressive)
+    return Math.max(0, Math.min((semitones - 3) / 15, 1.0));
+  }
+
+  // ─────────────────────────────────────────────
+  //  COLOR: score → vivid CSS color
+  //
+  //  Three hard zones, no gradual blending between zones:
+  //    0.00        → white (silence)
+  //    0.01–0.42   → BLUE  (monotone)
+  //    0.42–0.72   → GREEN (normal)
+  //    0.72–1.00   → RED   (expressive)
+  //
+  //  Within each zone there is subtle lightness variation
+  //  so the meter fill still looks "alive".
+  // ─────────────────────────────────────────────
+  function scoreToColor(score) {
+    if (score < 0.01) return { h: 0, s: 0, l: 97 };   // white
+
+    if (score < 0.42) {
+      // Blue zone: hue 225, full saturation
+      // Lightness 52 at entry, 44 at top of zone
+      const t = score / 0.42;
+      return { h: 225, s: 82, l: 52 - t * 8 };
+    }
+    if (score < 0.72) {
+      // Green zone: hue 135
+      const t = (score - 0.42) / (0.72 - 0.42);
+      return { h: 135, s: 68, l: 42 - t * 4 };
+    }
+    // Red zone: hue 5
+    const t = (score - 0.72) / (1.0 - 0.72);
+    return { h: 5, s: 82, l: 48 - t * 6 };
+  }
+
+  function applyScore(score) {
+    displayScore = score;
+    const c = scoreToColor(score);
+    const css = `hsl(${c.h},${c.s}%,${c.l}%)`;
+
+    meterFill.style.height          = (score * 100).toFixed(1) + '%';
+    meterFill.style.backgroundColor = css;
+
+    // Level label
+    let lbl = '';
+    if      (score >= 0.72) lbl = 'Expressive';
+    else if (score >= 0.42) lbl = 'Normal';
+    else if (score >= 0.05) lbl = 'Monotone';
+    levelText.textContent = lbl;
+    levelText.classList.toggle('visible', lbl !== '');
+
+    dbgScore.textContent = 'score ' + score.toFixed(3);
+  }
+
+  // ─────────────────────────────────────────────
+  //  MEASUREMENT CYCLE
+  //
+  //  Every MEASURE_INTERVAL ms:
+  //    1. Compute score from pitchBuffer collected so far
+  //    2. If enough voiced frames → update display
+  //    3. If too few frames (mostly silence) → fade to white
+  //    4. Clear buffer, start next window
+  // ─────────────────────────────────────────────
+  function runMeasurement() {
+    const voiced = pitchBuffer.filter(hz => hz > 60 && hz < 600);
+
+    if (voiced.length >= 5) {
+      const score = semitoneScore(voiced);
+      applyScore(score);
+    } else if (!hasVoice) {
+      // Silence — fade to white
+      applyScore(0);
+    }
+    // else: brief pause mid-speech → keep previous score
+
+    // Reset buffer for next window
+    pitchBuffer = [];
+    windowStart = performance.now();
+
+    // Schedule next measurement
+    measureTimer = setTimeout(runMeasurement, MEASURE_INTERVAL);
+  }
+
+  // ─────────────────────────────────────────────
+  //  COUNTDOWN RING ANIMATION
+  //  Animates continuously to show "next update in…"
+  // ─────────────────────────────────────────────
+  function animateCountdown() {
+    if (!isListening) return;
+    requestAnimationFrame(animateCountdown);
+
+    const elapsed  = performance.now() - windowStart;
+    const fraction = Math.min(elapsed / MEASURE_INTERVAL, 1.0);
+    // strokeDashoffset: CIRCUMFERENCE = full (empty), 0 = complete
+    progCircle.style.strokeDashoffset = (CIRCUMFERENCE * (1 - fraction)).toFixed(2);
+  }
+
+  // ─────────────────────────────────────────────
+  //  AUDIO SAMPLING LOOP
+  //  Runs every animation frame — only collects pitch,
+  //  does NOT update the display directly.
+  // ─────────────────────────────────────────────
+  function sampleLoop() {
+    if (!isListening) return;
+    requestAnimationFrame(sampleLoop);
+
+    analyser.getFloatTimeDomainData(buffer);
+
+    // RMS energy gate
+    let rms = 0;
+    for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+    rms = Math.sqrt(rms / buffer.length);
+
+    if (rms > 0.006) {
+      hasVoice = true;
+      if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+
+      const hz = yinPitch(buffer, audioCtx.sampleRate);
+      if (hz > 60 && hz < 600) {
+        pitchBuffer.push(hz);
+        dbgHz.textContent = hz.toFixed(0) + ' Hz';
+      }
+    } else {
+      if (!silenceTimer) {
+        silenceTimer = setTimeout(() => {
+          hasVoice = false;
+          silenceTimer = null;
+        }, SILENCE_TIMEOUT);
+      }
+      dbgHz.textContent = '— Hz';
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  AUDIO SETUP
+  // ─────────────────────────────────────────────
+  async function startAudio() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = audioCtx.createMediaStreamSource(stream);
+      analyser  = audioCtx.createAnalyser();
+      analyser.fftSize               = 2048;
+      analyser.smoothingTimeConstant = 0;
+      src.connect(analyser);
+      buffer = new Float32Array(analyser.fftSize);
+
+      isListening = true;
+      windowStart = performance.now();
+
+      startScreen.classList.add('hidden');
+      setTimeout(() => {
+        coachingScreen.classList.add('visible');
+        countdownWrap.classList.add('visible');
+      }, 500);
+
+      sampleLoop();
+      animateCountdown();
+
+      // First measurement after one full interval
+      measureTimer = setTimeout(runMeasurement, MEASURE_INTERVAL);
+
+    } catch (err) {
+      startBtn.textContent = 'Microphone access denied';
+      startBtn.style.opacity = '0.5';
+      startBtn.style.cursor  = 'default';
+    }
+  }
+
+  startBtn.addEventListener('click', () => {
+    startBtn.textContent = 'Listening…';
+    startBtn.disabled    = true;
+    startAudio();
+  });
+
+})();
+</script>
+</body>
+</html>
