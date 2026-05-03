@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Voice Coaching</title>
+<title>Stem Coaching</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
 <style>
@@ -199,14 +199,14 @@
 
 <!-- Start screen -->
 <div id="start-screen">
-  <h1>Voice Coaching</h1>
-  <p class="subtitle">See how your voice moves</p>
+  <h1>Stem Coaching</h1>
+  <p class="subtitle">Observeer de intonatie</p>
   <button id="start-btn">
     <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
       <circle cx="6" cy="6" r="5.5" stroke="currentColor"/>
       <path d="M4.5 4l4 2-4 2V4z" fill="currentColor"/>
     </svg>
-    Allow microphone
+    Toestemming microfoongebruik
   </button>
 </div>
 
@@ -214,22 +214,22 @@
 <div id="coaching-screen">
   <div id="coaching-title">
     <h1>Voice Coaching</h1>
-    <p class="subtitle">See how your voice moves</p>
+    <p class="subtitle">Observeer de intonatie</p>
   </div>
 
   <div id="meter-wrap">
     <!-- Calibrated tick marks — positioned by JS after layout -->
     <!-- Expressive level: score ~0.81 → bottom 81% -->
     <div class="tick" style="bottom:81%" id="tick-exp">
-      <span class="tick-label">Expressive</span>
+      <span class="tick-label">Expressief</span>
     </div>
     <!-- Normal level: score ~0.69 → bottom 69% -->
     <div class="tick" style="bottom:69%" id="tick-norm">
-      <span class="tick-label">Normal</span>
+      <span class="tick-label">Normaal</span>
     </div>
     <!-- Monotone level: score ~0.44 → bottom 44% -->
     <div class="tick" style="bottom:44%" id="tick-mono">
-      <span class="tick-label">Monotone</span>
+      <span class="tick-label">Monotoon</span>
     </div>
 
     <!-- Color fill (grows upward) -->
@@ -243,8 +243,8 @@
   </div>
 
   <div id="instructions">
-    <p>Speak naturally — more variation brings warmer colours</p>
-    <p>Silence returns the meter to white</p>
+    <p>Meer intonatie zie je aan warmere kleuren</p>
+    <p>Bij stilte wordt de indicator wit</p>
   </div>
 </div>
 
